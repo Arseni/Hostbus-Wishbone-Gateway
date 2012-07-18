@@ -26,7 +26,7 @@ module wb_hb_wrapper
 	input wire rst,
 	input wire clk,
 // host bus signals
-	input wire hb_sc,
+	input wire hb_cs,
 	input wire hb_oe,
 	input wire hb_we,
 	input wire [ADDR_WIDTH-1:0] hb_addr,
@@ -41,26 +41,25 @@ module wb_hb_wrapper
 	output reg [DATA_WIDTH-1:0] wb_wrData
 );
 
-reg strobe, write, read;
-reg [DATA_WIDTH-1:0] wrAddr;
+reg strobe, write, read, ack;
+reg [DATA_WIDTH-1:0] wrData, hb_outData;
 reg [ADDR_WIDTH-1:0] addr;
 
 always @*
 begin
 	if(rst == 1)
 	begin
-		wb_strobe = 0;
-		wb_write = 0;
-		wb_ack = 0;
-		wb_cycle = 0;
-		wb_addr = 'b0;
-		wb_wrData = 'b0;
+		strobe = 0;
+		write = 0;
+		ack = 0;
+		addr = 'b0;
+		wrData = 'b0;
 	end
-	else if(clk == 1)
+	else
 	begin
 		strobe = !(hb_cs) & !(hb_oe & hb_we);
-		write = !(hb_cs & hb_we);
-		read = !(hb_cs & hb_oe);
+		write = !(hb_cs | hb_we);
+		read = !(hb_cs | hb_oe);
 		addr = hb_addr;
 		wrData = hb_data;
 	end
@@ -70,10 +69,13 @@ always @*
 begin
 	wb_strobe = strobe;
 	wb_cycle = strobe;
+	wb_ack = strobe; // Permission 3.10
 	wb_write = write;
-	wb_addr = strobe == 1 ? addr : 'b0;
-	wb_wrData = write == 1 ? wrData : 'b0;
-	hb_data = read == 1 ? wb_rdData : 'bZ;
+	wb_addr = (strobe == 'b1) ? addr : 'b0;
+	wb_wrData = (write == 'b1) ? wrData : 'b0;
+	hb_outData = (read == 'b1) ? wb_rdData : 'bZ;
 end
+
+assign hb_data = hb_outData;
 
 endmodule
