@@ -4,7 +4,7 @@
 // Company: 
 // Engineer:
 //
-// Create Date:   23:03:01 07/17/2012
+// Create Date:   19:08:49 08/11/2012
 // Design Name:   wb_hb_wrapper
 // Module Name:   C:/xilinxProjects/wb_hb_bridge/wb_hb_wrapper_test.v
 // Project Name:  wb_hb_bridge
@@ -31,21 +31,21 @@ module wb_hb_wrapper_test;
 	reg hb_oe;
 	reg hb_we;
 	reg [15:0] hb_addr;
+	reg wb_ack;
 	reg [15:0] wb_rdData;
 
 	// Outputs
+	wire hb_rdy;
 	wire wb_strobe;
 	wire wb_write;
-	wire wb_ack;
 	wire wb_cycle;
 	wire [15:0] wb_addr;
 	wire [15:0] wb_wrData;
 
 	// Bidirs
 	wire [15:0] hb_data;
-	reg [15:0] hb_dataReg;
 	
-	assign hb_data = hb_we == 0 ? hb_dataReg : 16'bZ;
+	reg [15:0] hb_dataReg;
 
 	// Instantiate the Unit Under Test (UUT)
 	wb_hb_wrapper uut (
@@ -56,6 +56,7 @@ module wb_hb_wrapper_test;
 		.hb_we(hb_we), 
 		.hb_addr(hb_addr), 
 		.hb_data(hb_data), 
+		.hb_rdy(hb_rdy), 
 		.wb_strobe(wb_strobe), 
 		.wb_write(wb_write), 
 		.wb_ack(wb_ack), 
@@ -72,6 +73,7 @@ module wb_hb_wrapper_test;
 		hb_oe = 1;
 		hb_we = 1;
 		hb_addr = 'b11;
+		wb_ack = 0;
 		wb_rdData = 16'b1010101010101010;
 		hb_dataReg = 16'b1111000011110000;
 
@@ -83,13 +85,19 @@ module wb_hb_wrapper_test;
 		
 		hb_cs = 0;
 		hb_oe = 0;
-		#100;
+		#30;
+		wb_ack = 1;
+		#70;
+		wb_ack = 0;
 		hb_cs = 1;
 		hb_oe = 1;
 		#100;
 		hb_cs = 0;
 		hb_we = 0;
-		#100;
+		#30;
+		wb_ack = 1;
+		#70;
+		wb_ack = 0;
 		hb_cs = 1;
 		hb_we = 1;
 		
@@ -105,6 +113,8 @@ module wb_hb_wrapper_test;
 		clk = 0;
 		#10;
 	end
+  
+	assign hb_data = (hb_we == 0) ? hb_dataReg : 'bZ;
       
 endmodule
 

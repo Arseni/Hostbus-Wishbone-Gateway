@@ -31,17 +31,18 @@ module wb_hb_wrapper
 	input wire hb_we,
 	input wire [ADDR_WIDTH-1:0] hb_addr,
 	inout wire [DATA_WIDTH-1:0] hb_data,
+	output reg hb_rdy,
 // wishbone signals
 	output reg wb_strobe,
 	output reg wb_write,
-	output reg wb_ack,
+	input wire wb_ack,
 	output reg wb_cycle,
 	output reg [ADDR_WIDTH-1:0] wb_addr,
 	input wire [DATA_WIDTH-1:0] wb_rdData,
 	output reg [DATA_WIDTH-1:0] wb_wrData
 );
 
-reg strobe, write, read, ack;
+reg strobe, write, read, ready;
 reg [DATA_WIDTH-1:0] wrData, hb_outData;
 reg [ADDR_WIDTH-1:0] addr;
 
@@ -51,7 +52,8 @@ begin
 	begin
 		strobe = 0;
 		write = 0;
-		ack = 0;
+		read = 0;
+		ready = 1;
 		addr = 'b0;
 		wrData = 'b0;
 	end
@@ -60,6 +62,7 @@ begin
 		strobe = !(hb_cs) & !(hb_oe & hb_we);
 		write = !(hb_cs | hb_we);
 		read = !(hb_cs | hb_oe);
+		ready = !(wb_ack);
 		addr = hb_addr;
 		wrData = hb_data;
 	end
@@ -69,11 +72,11 @@ always @*
 begin
 	wb_strobe = strobe;
 	wb_cycle = strobe;
-	wb_ack = strobe; // Permission 3.10
 	wb_write = write;
-	wb_addr = (strobe == 'b1) ? addr : 'b0;
-	wb_wrData = (write == 'b1) ? wrData : 'b0;
+	wb_addr = strobe & addr;
+	wb_wrData = write & wrData;
 	hb_outData = (read == 'b1) ? wb_rdData : 'bZ;
+	hb_rdy = (strobe == 'b1) ? ready : 'bZ;
 end
 
 assign hb_data = hb_outData;
